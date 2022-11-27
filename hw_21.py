@@ -3,35 +3,55 @@ import re
 # читаем адресную книгу в формате CSV в список contacts_list
 import csv
 
-name_pattern = r'([А-Я][а-я]*)[\s|,]([А-Я][а-я]*)[\s|,]?([А-Я][а-я]*)?'
+name_pattern = r'([А-Я][а-я]*)[\s|,]{1}([А-Я][а-я]*)+[\s|,]{1}([А-Я][а-я]*)?'
 phone_pattern = r'(\+7|8)\s?(\(?)(\d{3})(\s?\)?\-?)(\s?\-?)(\d{3})(\s?\-?)(\d{2})(\s?\-?)(\d{2})\s?\(?(доб.)?\s?(\d*)'
-sub_phone_pattern = r'+7(\3)\6-\8-\10 \11\12 '
 
 with open("phonebook_raw.csv") as f:
   rows = csv.reader(f, delimiter=",")
   contacts_list = list(rows)
-  text = ''
+  
+  result_list = []
+
   for person in contacts_list:
-        text += '\n'
+        text = ''
+        phone = 'phone'
+        f_name = 'firstname'
+        l_name = 'lastname'
+        surname = 'surname'
+
+        #make a string from rows
         for name in person:
-            text += f'{name} '
-  print(text)
-  name_result = re.findall(name_pattern, text)
-  phone_result = re.findall(phone_pattern, text)
-  text_result = re.sub(phone_pattern, sub_phone_pattern, text)
-  print(name_result)
-  print(phone_result)
-  print(text_result)
+            text += f'{name},'
 
-#pprint(contacts_list)
+        #find a certain piece of text with name
+        result_names = re.search(name_pattern, text)
 
-# TODO 1: выполните пункты 1-3 ДЗ
-# ваш код
+        #if *names are found then assign them to vars
+        if result_names:
+            surname = result_names.group(1)
+            f_name = result_names.group(2)
+            l_name = result_names.group(3)
+        
+        #find a certain piece of text with phone
+        result_phones = re.search(phone_pattern, text)
+        
+        #if phone is found then assign it to a variable with a certain format
+        if result_phones:
+            if result_phones.group(11):
+                phone = '+7('+result_phones.group(3)+')'+result_phones.group(6)+'-'+result_phones.group(8)+'-'+\
+                    result_phones.group(10)+' '+result_phones.group(11)+''+result_phones.group(12)
+            else:
+                phone = '+7('+result_phones.group(3)+')'+result_phones.group(6)+'-'+result_phones.group(8)+'-'+\
+                    result_phones.group(10)
 
-# TODO 2: сохраните получившиеся данные в другой файл
-# код для записи файла в формате CSV
+        #check if a person with a certain firstname and surname is already in the list        
+        match = [x for x in result_list if x[0] == surname and x[1] == f_name]
+
+        #if a person is not in then append the list with data
+        if match == []:
+            result_list.append([surname, f_name, l_name, phone])
+
 with open("phonebook.csv", "w") as f:
   datawriter = csv.writer(f, delimiter=',')
   # Вместо contacts_list подставьте свой список
-  datawriter.writerows(contacts_list)
-
+  datawriter.writerows(result_list)
